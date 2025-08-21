@@ -26,7 +26,7 @@ def upload_df(df, key):
     df.to_csv(csv_buffer, index=False)
     s3.put_object(Bucket=BUCKET, Key=key, Body=csv_buffer.getvalue())
 
-# ----------------- LOAD DATA ----------------- #
+# ----------------- LOAD DATA ---------------- #
 print("📥 Loading data from S3...")
 train_df = read_csv_from_s3(BUCKET, RAW_KEYS["train"])
 test_df = read_csv_from_s3(BUCKET, RAW_KEYS["test"])
