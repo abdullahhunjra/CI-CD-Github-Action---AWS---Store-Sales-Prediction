@@ -30,18 +30,17 @@ hyperparameter_ranges = {
     "max_features": CategoricalParameter(["sqrt", "log2", "auto"]),
 }
 
-# Tuner with metric definition
 tuner = HyperparameterTuner(
     estimator=estimator,
-    objective_metric_name="validation:rmse",  # must match printed log line
+    objective_metric_name="validation:rmse",  # must exactly match the Name below
     objective_type="Minimize",
     hyperparameter_ranges=hyperparameter_ranges,
     max_jobs=10,
     max_parallel_jobs=2,
     metric_definitions=[
         {
-            "Name": "validation:rmse",
-            "Regex": "Best Random Forest RMSE: ([0-9\\.]+)"
+            "Name": "validation:rmse",  # must match the metric printed in tune.py
+            "Regex": "validation:rmse ([0-9\\.]+)"  # must match the printed format
         }
     ]
 )

@@ -48,5 +48,7 @@ os.makedirs(model_path, exist_ok=True)
 joblib.dump(rf, os.path.join(model_path, "model.joblib"))
 
 
-print(f"Best Random Forest RMSE: {rmse:.2f}")
+# Replace both print lines with:
+print(f"validation:rmse {rmse:.4f}")
+
 
