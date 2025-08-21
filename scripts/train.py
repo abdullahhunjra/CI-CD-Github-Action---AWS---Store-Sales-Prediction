@@ -1,4 +1,4 @@
-""import os, json, joblib, boto3
+import os, json, joblib, boto3
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -135,3 +135,4 @@ with open("/tmp/model_performance_report.txt", "w") as f:
 s3.upload_file("/tmp/model_performance_report.txt", BUCKET, RESULTS_PREFIX + "model_performance_report.txt")
 
 print("✅ Training complete. Models and artifacts uploaded to S3.")
+

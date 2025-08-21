@@ -14,7 +14,7 @@ sklearn_estimator = SKLearn(
     role=role,
     instance_count=1,
     instance_type="ml.m5.large",
-    framework_version="0.23-1",           # sklearn version
+    framework_version="1.2-1",
     py_version="py3",
     dependencies=["requirements.txt"],
 )
