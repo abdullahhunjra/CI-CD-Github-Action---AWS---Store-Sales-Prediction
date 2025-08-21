@@ -6,20 +6,15 @@ from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
 
 # ---------------- CONFIG ---------------- #
-BUCKET = "rossmann-sales-bucket"  # 🔁 your S3 bucket
-RAW_KEYS = {
-    "train": "rossmann-raw/train.csv",
-    "test": "rossmann-raw/test.csv",
-    "store": "rossmann-raw/store.csv"
-}
+BUCKET = "rossmann-sales-bucket"
 PROC_PREFIX = "rossmann-processed/"
 ART_PREFIX = "rossmann-artifacts/"
 
 s3 = boto3.client("s3")
 
-def read_csv_from_s3(bucket, key):
-    obj = s3.get_object(Bucket=bucket, Key=key)
-    return pd.read_csv(obj["Body"])
+# Read from local path in SageMaker container
+def read_csv_local(filename):
+    return pd.read_csv(f"/opt/ml/processing/input/{filename}")
 
 def upload_df(df, key):
     csv_buffer = StringIO()
@@ -27,14 +22,14 @@ def upload_df(df, key):
     s3.put_object(Bucket=BUCKET, Key=key, Body=csv_buffer.getvalue())
 
 # ----------------- LOAD DATA ---------------- #
-print("📥 Loading data from S3...")
-train_df = read_csv_from_s3(BUCKET, RAW_KEYS["train"])
-test_df = read_csv_from_s3(BUCKET, RAW_KEYS["test"])
-store_df = read_csv_from_s3(BUCKET, RAW_KEYS["store"])
+print("📥 Loading data from container input path...")
+train_df = read_csv_local("train.csv")
+test_df  = read_csv_local("test.csv")
+store_df = read_csv_local("store.csv")
 
 # Merge store info
 df_train = pd.merge(train_df, store_df, on="Store", how="left")
-df_test = pd.merge(test_df, store_df, on="Store", how="left")
+df_test  = pd.merge(test_df,  store_df, on="Store", how="left")
 
 # ---------------- DATE FEATURES ---------------- #
 def Date_column(df):
@@ -48,11 +43,11 @@ def Date_column(df):
     return df
 
 df_train = Date_column(df_train)
-df_test = Date_column(df_test)
+df_test  = Date_column(df_test)
 
 # ---------------- OPEN & PROMO2 ---------------- #
 df_train = df_train[df_train["Open"] == 1].drop(columns=["Open"])
-df_test = df_test[df_test["Open"] == 1].drop(columns=["Open"])
+df_test  = df_test[df_test["Open"] == 1].drop(columns=["Open"])
 
 for df in [df_train, df_test]:
     df["PromoInterval"] = df["PromoInterval"].fillna("NoPromo")
@@ -72,7 +67,7 @@ def preprocess_competition_distance(df):
     df["CompetitionDistance"] = np.log1p(df["CompetitionDistance"])
 
     df["CompetitionOpenSinceMonth"] = df["CompetitionOpenSinceMonth"].fillna(0).astype(int)
-    df["CompetitionOpenSinceYear"] = df["CompetitionOpenSinceYear"].fillna(0).astype(int)
+    df["CompetitionOpenSinceYear"]  = df["CompetitionOpenSinceYear"].fillna(0).astype(int)
 
     df["CompetitionOpenSinceDate"] = df.apply(
         lambda row: datetime(
@@ -93,7 +88,7 @@ def preprocess_competition_distance(df):
     return df
 
 df_train = preprocess_competition_distance(df_train)
-df_test = preprocess_competition_distance(df_test)
+df_test  = preprocess_competition_distance(df_test)
 
 # ---------------- DROP UNUSED COLUMNS ---------------- #
 drop_cols = [
@@ -108,7 +103,7 @@ df_test.drop(columns=[c for c in drop_cols if c in df_test.columns], inplace=Tru
 
 # ---------------- ENCODING ---------------- #
 df_train["StateHoliday"] = df_train["StateHoliday"].astype(str)
-df_test["StateHoliday"] = df_test["StateHoliday"].astype(str)
+df_test["StateHoliday"]  = df_test["StateHoliday"].astype(str)
 
 label_encoders = {}
 for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
@@ -120,7 +115,7 @@ for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
 # ---------------- SPLIT & UPLOAD ---------------- #
 X_train = df_train.drop("Sales", axis=1)
 y_train = df_train[["Sales"]]
-X_test = df_test.copy()  # note: y_test is not available
+X_test  = df_test.copy()  # y_test not available
 
 print("📤 Uploading processed datasets to S3...")
 upload_df(X_train, PROC_PREFIX + "X_train.csv")
