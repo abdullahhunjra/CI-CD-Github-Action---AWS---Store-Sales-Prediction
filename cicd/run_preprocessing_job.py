@@ -36,4 +36,4 @@ sklearn_processor.run(
     ],
 )
 
-print("✅ Rossmann preprocessing job launched on SageMaker")
+print("✅ Rossmann preprocessing job launched on SageMaker .")
