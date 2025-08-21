@@ -46,3 +46,7 @@ print(f"validation:RMSE {rmse:.4f}")
 model_path = "/opt/ml/model"
 os.makedirs(model_path, exist_ok=True)
 joblib.dump(rf, os.path.join(model_path, "model.joblib"))
+
+
+print(f"Best Random Forest RMSE: {rmse:.2f}")
+

@@ -10,7 +10,7 @@ job_name = f"rf-hpo-{timestamp}"
 
 # Estimator
 estimator = SKLearn(
-    entry_point="hpt.py",
+    entry_point="hpt.py",                   
     source_dir="scripts/",
     role=role,
     instance_count=1,
@@ -30,15 +30,21 @@ hyperparameter_ranges = {
     "max_features": CategoricalParameter(["sqrt", "log2", "auto"]),
 }
 
-# Tuner
+# Tuner with metric definition
 tuner = HyperparameterTuner(
-    estimator,
-    objective_metric_name="validation:RMSE",
+    estimator=estimator,
+    objective_metric_name="validation:rmse",  # must match printed log line
     objective_type="Minimize",
     hyperparameter_ranges=hyperparameter_ranges,
     max_jobs=10,
-    max_parallel_jobs=2
+    max_parallel_jobs=2,
+    metric_definitions=[
+        {
+            "Name": "validation:rmse",
+            "Regex": "Best Random Forest RMSE: ([0-9\\.]+)"
+        }
+    ]
 )
 
-# Start tuning
+# Start tuning job
 tuner.fit(job_name=job_name)
