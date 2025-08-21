@@ -27,7 +27,7 @@ def load_csv(key):
 X = load_csv(PROC_PREFIX + "X_train.csv")
 y = load_csv(PROC_PREFIX + "y_train.csv").values.ravel()
 
-# ---------------- Train/Test Split ----------------
+# ---------------- Train/Test Split -----------------
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # ---------------- Feature Selection ----------------

@@ -1,10 +1,7 @@
-fastapi
-uvicorn
 pandas
-boto3
-scikit-learn==0.23.2
-joblib
-pydantic
 numpy
+scikit-learn==0.23.2
 xgboost
 matplotlib
+joblib
+boto3
