@@ -25,7 +25,7 @@ image_uri = job_info["AlgorithmSpecification"]["TrainingImage"]
 print(f"✅ Model artifact: {model_artifact}")
 print(f"✅ Training image: {image_uri}")
 
-# --- Step 3: Register and deploy model ---
+# --- Step 3: Register and deploy model ----
 model = Model(
     image_uri=image_uri,
     model_data=model_artifact,
