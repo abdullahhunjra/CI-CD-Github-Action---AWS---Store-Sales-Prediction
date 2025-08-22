@@ -34,7 +34,7 @@ model = Model(
     sagemaker_session=session
 )
 
-endpoint_name = f"rossmann-store-sales-endpoints"
+endpoint_name = f"rossmann-store-sales-analysis-endpoints"
 predictor = model.deploy(
     initial_instance_count=1,
     instance_type="ml.m5.large",
