@@ -1,37 +1,35 @@
-# .github/workflows/deploy.yml
-
-name: Deploy to SageMaker Endpoint
+name: Deploy Model to SageMaker
 
 on:
   push:
     branches:
       - main
     paths:
-      - cicd/deploy_model.py
-      - inference/predictor.py
-      - .github/workflows/deploy.yml
+      - cicd/deploy_model.py 
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-
     steps:
-      - name: Checkout code
+      - name: ✅ Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: '3.9'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
-          pip install boto3 sagemaker pandas scikit-learn joblib
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install sagemaker boto3
 
-      - name: Deploy model to SageMaker
-        run: python cicd/deploy_model.py
+      - name: 🚀 Deploy to SageMaker
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1  # 👈 Update if using a different region
+        run: |
+          python cicd/deploy_model.py
