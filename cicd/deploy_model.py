@@ -1,6 +1,6 @@
 import boto3
 import sagemaker
-from sagemaker.model import Model
+from sagemaker.sklearn.model import SKLearnModel  # ✅ Use SKLearnModel instead of Model
 from datetime import datetime
 
 # --- CONFIG ---
@@ -18,27 +18,27 @@ tuning_info = sm_client.describe_hyper_parameter_tuning_job(
 best_job_name = tuning_info["BestTrainingJob"]["TrainingJobName"]
 print(f"✅ Best training job: {best_job_name}")
 
-# --- Step 2: Get model artifact + training image ---
+# --- Step 2: Get model artifact ---
 job_info = sm_client.describe_training_job(TrainingJobName=best_job_name)
 model_artifact = job_info["ModelArtifacts"]["S3ModelArtifacts"]
-image_uri = job_info["AlgorithmSpecification"]["TrainingImage"]
 print(f"✅ Model artifact: {model_artifact}")
-print(f"✅ Training image URI: {image_uri}")
 
-# --- Step 3: Register and deploy model ----
-model = Model(
-    image_uri=image_uri,
+# --- Step 3: Use SKLearnModel instead of Model ---
+model = SKLearnModel(
     model_data=model_artifact,
     role=role,
-    entry_point="inference/predictor.py",  # ✅ Make sure this path exists in your repo
+    framework_version="0.23-1",  # ✅ Matches training image version
+    entry_point=None,  # ✅ No inference.py needed
     sagemaker_session=session
 )
 
-endpoint_name = f"rossmann-store-sales-analysis-endpoints"
+# --- Step 4: Deploy endpoint ---
+endpoint_name = f"rossmann-endpoint-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 predictor = model.deploy(
     initial_instance_count=1,
     instance_type="ml.m5.large",
-    endpoint_name=endpoint_name
+    endpoint_name=endpoint_name,
+    wait=True  # ✅ Wait until the endpoint is live
 )
 
-print(f"✅ Model deployed at endpoint: {endpoint_name}")
+print(f"✅ Model deployed successfully at endpoint: {endpoint_name}")
