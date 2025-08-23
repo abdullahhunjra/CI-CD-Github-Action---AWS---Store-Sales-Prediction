@@ -3,7 +3,9 @@ name: Deploy Model to SageMaker
 on:
   push:
     paths:
-      - 'cicd/deploy_model.py' 
+      - cicd/deploy_model.py 
+      - scripts/inference.py
+    
 
 jobs:
   deploy-model:

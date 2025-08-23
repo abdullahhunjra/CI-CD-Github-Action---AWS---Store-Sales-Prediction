@@ -1,30 +1,38 @@
 import sagemaker
 from sagemaker.sklearn.model import SKLearnModel
 
-# SageMaker execution role
 role = "arn:aws:iam::755283537318:role/telco-sagemaker-role"
-
-# S3 path to your trained model
-model_artifact = "s3://rossmann-sales-bucket/rf-hpo-output/rf-hpo-2025-08-21-19-05-05-007-496cb0b3/output/model.tar.gz"
-
-# Create a SageMaker session
 sagemaker_session = sagemaker.Session()
 
-# Create a SageMaker model object
+# Best model artifact
+model_artifact = (
+    "s3://rossmann-sales-bucket/rf-hpo-output/"
+    "rf-hpo-2025-08-21-19-05-05-007-496cb0b3/output/model.tar.gz"
+)
+
+endpoint_name = "rossmann-rf-endpoint-new"
+
+# Delete old endpoint if exists
+try:
+    sagemaker_session.delete_endpoint(endpoint_name)
+except Exception as e:
+    print("ℹ️ No existing endpoint to delete:", e)
+
+# Create SageMaker model
 model = SKLearnModel(
-    entry_point="inference.py",  # 👈 Add this
-    source_dir="scripts",           # 👈 Path to inference.py
+    entry_point="inference.py",
+    source_dir="scripts",   # ✅ since you confirmed inference.py is here
     model_data=model_artifact,
     role=role,
     framework_version="0.23-1",
     sagemaker_session=sagemaker_session
 )
 
-# Deploy to endpoint
+# Deploy
 predictor = model.deploy(
     initial_instance_count=1,
-    instance_type="ml.m5.large",  # You can also use ml.m5.xlarge if needed
-    endpoint_name="rossmann-rf-endpoint-new"
+    instance_type="ml.m5.large",  # bump to ml.m5.xlarge if memory issue
+    endpoint_name=endpoint_name
 )
 
 print(f"✅ Model deployed successfully! Endpoint name: {predictor.endpoint_name}")
