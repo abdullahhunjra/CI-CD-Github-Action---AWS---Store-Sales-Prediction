@@ -4,34 +4,46 @@ import json
 import numpy as np
 import pandas as pd
 
-# ---- Load Model ----
+# -------------------------
+# Load the trained model
+# -------------------------
 def model_fn(model_dir):
-    """Load model from model_dir (SageMaker expects this)."""
+    """Loads the trained model from model_dir."""
     model_path = os.path.join(model_dir, "model.joblib")
     model = joblib.load(model_path)
     print("✅ Model loaded successfully.")
     return model
 
-# ---- Input Handler ----
+# -------------------------
+# Handle incoming request
+# -------------------------
 def input_fn(request_body, request_content_type):
-    """Deserialize request body to DataFrame."""
+    """Parses incoming request JSON into a DataFrame."""
     if request_content_type == "application/json":
         data = json.loads(request_body)
-        df = pd.DataFrame([data]) if isinstance(data, dict) else pd.DataFrame(data)
+        # Allow both dict & list inputs
+        if isinstance(data, dict):
+            df = pd.DataFrame([data])
+        else:
+            df = pd.DataFrame(data)
         return df
     else:
-        raise ValueError(f"Unsupported content type: {request_content_type}")
+        raise ValueError(f"❌ Unsupported content type: {request_content_type}")
 
-# ---- Predict ----
+# -------------------------
+# Make prediction
+# -------------------------
 def predict_fn(input_data, model):
-    """Make prediction using the trained model."""
+    """Use the model to make predictions."""
     preds = model.predict(input_data)
     return preds
 
-# ---- Output Formatter ----
-def output_fn(prediction, content_type):
-    """Serialize prediction output."""
-    if content_type == "application/json":
+# -------------------------
+# Format the output
+# -------------------------
+def output_fn(prediction, accept):
+    """Formats prediction response into JSON."""
+    if accept == "application/json":
         return json.dumps({"prediction": prediction.tolist()})
     else:
-        raise ValueError(f"Unsupported content type: {content_type}")
+        raise ValueError(f"❌ Unsupported accept type: {accept}")
