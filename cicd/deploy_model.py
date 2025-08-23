@@ -24,7 +24,7 @@ model = SKLearnModel(
 predictor = model.deploy(
     initial_instance_count=1,
     instance_type="ml.m5.large",  # You can also use ml.m5.xlarge if needed
-    endpoint_name="rossmann-rf-endpoint"
+    endpoint_name="rossmann-rf-endpoint-new"
 )
 
 print(f"✅ Model deployed successfully! Endpoint name: {predictor.endpoint_name}")
