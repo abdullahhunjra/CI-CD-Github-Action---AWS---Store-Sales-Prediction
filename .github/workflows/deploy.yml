@@ -1,35 +1,45 @@
-name: Deploy Model to SageMaker
+name: SageMaker HPO + Deployment
 
 on:
   push:
-    branches: [ main ]
     paths:
       - cicd/deploy_model.py
-      - inference/predictor.py
       - .github/workflows/deploy_model.yml
 
 jobs:
-  deploy-model:
+  tune-model:
     runs-on: ubuntu-latest
-
     steps:
-      - name: ⬇️ Checkout Repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          python-version: 3.9
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      - name: 📦 Install Dependencies
+      - name: Run HPO job
         run: |
-          python -m pip install --upgrade pip
-          pip install boto3 sagemaker
+          pip install sagemaker boto3
+          python cicd/hpo_runner.py   # Assuming this is your HPO runner
 
-      - name: 🚀 Deploy Model to SageMaker
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+  deploy-model:
+    needs: tune-model
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy model to SageMaker
         run: |
-          python cicd/deploy_model.py
+          pip install sagemaker boto3
+          python cicd/deploy_model.py  
