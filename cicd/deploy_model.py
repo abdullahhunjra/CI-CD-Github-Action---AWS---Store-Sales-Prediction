@@ -1,6 +1,6 @@
 import boto3
 import sagemaker
-from sagemaker.sklearn.model import SKLearnModel  # ✅ Use SKLearnModel instead of Model
+from sagemaker.sklearn.model import SKLearnModel
 from datetime import datetime
 
 # --- CONFIG ---
@@ -23,12 +23,11 @@ job_info = sm_client.describe_training_job(TrainingJobName=best_job_name)
 model_artifact = job_info["ModelArtifacts"]["S3ModelArtifacts"]
 print(f"✅ Model artifact: {model_artifact}")
 
-# --- Step 3: Use SKLearnModel instead of Model ---
+# --- Step 3: Use SKLearnModel for deployment ---
 model = SKLearnModel(
     model_data=model_artifact,
     role=role,
-    framework_version="0.23-1",  # ✅ Matches training image version
-    entry_point=None,  # ✅ No inference.py needed
+    framework_version="0.23-1",  # ✅ Must match training version
     sagemaker_session=session
 )
 
@@ -37,8 +36,7 @@ endpoint_name = f"rossmann-endpoint-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 predictor = model.deploy(
     initial_instance_count=1,
     instance_type="ml.m5.large",
-    endpoint_name=endpoint_name,
-    wait=True  # ✅ Wait until the endpoint is live
+    endpoint_name=endpoint_name
 )
 
-print(f"✅ Model deployed successfully at endpoint: {endpoint_name}")
+print(f"✅ Model deployed at endpoint: {endpoint_name}")
