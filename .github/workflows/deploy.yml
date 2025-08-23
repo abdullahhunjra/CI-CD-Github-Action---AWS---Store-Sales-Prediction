@@ -1,35 +1,15 @@
-name: SageMaker HPO + Deployment
+name: Deploy Model to SageMaker
 
 on:
   push:
     paths:
-      - cicd/deploy_model.py
-      - .github/workflows/deploy_model.yml
+      - 'cicd/deploy_model.py' 
 
 jobs:
-  tune-model:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Run HPO job
-        run: |
-          pip install sagemaker boto3
-          python cicd/hpo_runner.py   # Assuming this is your HPO runner
-
   deploy-model:
-    needs: tune-model
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -39,7 +19,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Deploy model to SageMaker
+      - name: Deploy Model to SageMaker
         run: |
           pip install sagemaker boto3
-          python cicd/deploy_model.py  
+          python cicd/deploy_model.py
