@@ -35,9 +35,9 @@ print(f"✅ Model artifact: {model_artifact}")
 model = SKLearnModel(
     model_data=model_artifact,
     role=role,
-    entry_point="inference/predictor.py",  # ✅ Use our custom predictor
-    framework_version="0.23-1",
+    framework_version="0.23-1",  # ✅ Built-in container version
     sagemaker_session=session
+    # ❌ Removed entry_point
 )
 
 # -------------------------
