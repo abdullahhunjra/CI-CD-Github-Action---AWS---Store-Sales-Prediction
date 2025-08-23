@@ -12,9 +12,11 @@ sagemaker_session = sagemaker.Session()
 
 # Create a SageMaker model object
 model = SKLearnModel(
+    entry_point="inference.py",  # 👈 Add this
+    source_dir="scripts",           # 👈 Path to inference.py
     model_data=model_artifact,
     role=role,
-    framework_version="0.23-1",  # Match training version
+    framework_version="0.23-1",
     sagemaker_session=sagemaker_session
 )
 
