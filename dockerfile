@@ -4,7 +4,7 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install essential system dependencies
+# Install required system packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
@@ -14,12 +14,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+# Upgrade pip, setuptools, and wheel to avoid source builds
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Copy application code
+# Copy requirements.txt first for dependency caching
+COPY requirements.txt .
+
+# Install Python dependencies using prebuilt wheels only
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+
+# Copy app code
 COPY app/ ./app/
 
 # Expose FastAPI port
