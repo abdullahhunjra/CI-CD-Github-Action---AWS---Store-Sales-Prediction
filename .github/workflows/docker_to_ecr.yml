@@ -3,7 +3,7 @@ name: Build and Push Docker to ECR
 on:
   push:
     paths:
-      - 'Dockerfile'
+      - 'dockerfile'
       - 'app/**'
     branches:
       - main

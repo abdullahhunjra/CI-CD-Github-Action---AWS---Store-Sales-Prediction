@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import tarfile
 
-# ---------------- CONFIG ----------------------
+# ---------------- CONFIG ------------------------
 BUCKET = "rossmann-sales-bucket"
 MODEL_KEY = "rf-hpo-output/rf-hpo-2025-08-24-02-16-36-009-8c46cc4d/output/model.tar.gz"
 
