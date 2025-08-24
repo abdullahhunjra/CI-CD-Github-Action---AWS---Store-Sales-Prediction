@@ -18,7 +18,7 @@ def load_csv_from_s3(key):
 X = load_csv_from_s3("rossmann-processed/X_train.csv")
 y = load_csv_from_s3("rossmann-processed/y_train.csv").values.ravel()
 
-# ---- SAMPLE 50% of the dataset ----
+# ---- SAMPLE 50% of the dataset ------
 X, _, y, _ = train_test_split(X, y, test_size=0.5, random_state=42, stratify=None)
 print(f"🔹 Using {len(X)} samples (~50% of data) for training to keep model lightweight")
 
