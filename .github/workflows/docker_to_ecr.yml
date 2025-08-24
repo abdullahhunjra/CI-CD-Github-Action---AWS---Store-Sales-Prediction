@@ -1,25 +1,24 @@
-name: Build and Push Docker Image to ECR
+name: Build and Push Docker to ECR
 
 on:
   push:
-    branches:
-      - main
     paths:
       - 'Dockerfile'
       - 'app/**'
       - 'requirements.txt'
-      - '.github/workflows/docker_to_ecr.yml'
+    branches:
+      - main
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository
+      # Step 1: Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Configure AWS credentials using secrets
+      # Step 2: Configure AWS credentials from GitHub Secrets
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -27,13 +26,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Login to Amazon ECR
+      # Step 3: Login to Amazon ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build, Tag, and Push Docker image
-      - name: Build and Push Docker image to ECR
+      # Step 4: Build, Tag & Push Docker image to ECR
+      - name: Build and push Docker image to ECR
         env:
           ECR_REPO: rossmann-sales-inference
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -47,6 +46,6 @@ jobs:
           echo "📤 Pushing image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPO:latest
 
-      # Show final ECR image URL
+      # Step 5: Show ECR Image URL
       - name: Show ECR Image URL
         run: echo "✅ Image pushed to: ${{ steps.login-ecr.outputs.registry }}/rossmann-sales-inference:latest"
