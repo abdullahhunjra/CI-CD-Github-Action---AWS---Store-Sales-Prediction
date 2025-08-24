@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-# -------- Config --------
+# -------- Config ---------
 BUCKET = os.getenv("BUCKET", "rossmann-sales-bucket")
 MODEL_KEY = os.getenv("MODEL_KEY", "rossmann-artifacts/model.joblib")
 ENCODER_KEY = os.getenv("ENCODER_KEY", "rossmann-artifacts/label_encoders.pkl")
