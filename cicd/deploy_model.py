@@ -10,7 +10,7 @@ model_artifact = (
     "rf-hpo-2025-08-21-19-05-05-007-496cb0b3/output/model.tar.gz"
 )
 
-endpoint_name = "rossmann-rf-endpoint-new-final"
+endpoint_name = "rossmann-rf-endpoint-new-fully-final"
 
 # Delete old endpoint if exists
 try:
@@ -21,17 +21,17 @@ except Exception as e:
 # Create SageMaker model
 model = SKLearnModel(
     entry_point="inference.py",
-    source_dir="scripts",   # ✅ since you confirmed inference.py is here
+    source_dir="scripts",
     model_data=model_artifact,
     role=role,
-    framework_version="0.23-1",
+    framework_version="1.0-1",  
     sagemaker_session=sagemaker_session
 )
 
 # Deploy
 predictor = model.deploy(
     initial_instance_count=1,
-    instance_type="ml.m5.large",  # bump to ml.m5.xlarge if memory issue
+    instance_type="ml.m5.large", 
     endpoint_name=endpoint_name
 )
 
