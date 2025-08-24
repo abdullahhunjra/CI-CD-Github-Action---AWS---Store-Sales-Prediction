@@ -2,44 +2,38 @@ name: Build and Push Docker to ECR
 
 on:
   push:
+    branches: [ main ]
     paths:
       - 'Dockerfile'
       - 'app/**'
       - 'requirements.txt'
-    branches:
-      - main
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
-    steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v4
+    permissions:
+      id-token: write
+      contents: read
 
-      # Configure AWS credentials
-      - name: Configure AWS credentials
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: arn:aws:iam::755283537318:role/GitHubActionsECRPushRole
+          aws-region: us-east-1
 
-      # Login to Amazon ECR
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build and push Docker image to ECR
-      - name: Build and Push Docker image
+      - name: Build & Push Docker image
         env:
-          ECR_REPO: rossmann-sales-inference
+          ECR_REPO: rossmann-inference
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          echo "🔨 Building Docker image..."
           docker build -t $ECR_REPO:latest .
           docker tag $ECR_REPO:latest $ECR_REGISTRY/$ECR_REPO:latest
-          echo "🚀 Pushing image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPO:latest
-          echo "✅ Image pushed to: $ECR_REGISTRY/$ECR_REPO:latest"

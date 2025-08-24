@@ -1,45 +1,23 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import boto3
-import joblib
+import boto3, os, joblib
 import pandas as pd
-import os
-import tarfile
+import numpy as np
+from datetime import datetime
 
-# ---------------- CONFIG ------------------------
-BUCKET = "rossmann-sales-bucket"
-MODEL_KEY = "rf-hpo-output/rf-hpo-2025-08-24-02-16-36-009-8c46cc4d/output/model.tar.gz"
+# -------- Config --------
+BUCKET = os.getenv("BUCKET", "rossmann-sales-bucket")
+MODEL_KEY = os.getenv("MODEL_KEY", "rossmann-artifacts/model.joblib")
+ENCODER_KEY = os.getenv("ENCODER_KEY", "rossmann-artifacts/label_encoders.pkl")
+REGION = os.getenv("AWS_REGION", "us-east-1")
 
-SELECTED_FEATURES = [
-    "Store",
-    "DayOfWeek",
-    "Promo",
-    "StateHoliday",
-    "SchoolHoliday",
-    "StoreType",
-    "Assortment",
-    "CompetitionDistance",
-    "Year",
-    "Month",
-    "WeekOfYear",
-    "Day",
-    "IsWeekend",
-    "IsPromoMonth",
-    "Promo2Active",
-    "CompetitionOpenTimeMonths"
-]
-
-# Initialize FastAPI app
-app = FastAPI()
-
-# Initialize boto3 client
-s3 = boto3.client("s3")
-
-# Global variable for model
+# -------- Globals --------
+s3 = boto3.client("s3", region_name=REGION)
 model = None
+encoders = None
 
-# ---------------- Request Schema ------------------
-class RossmannFeatures(BaseModel):
+# -------- Input Schema --------
+class Features(BaseModel):
     Store: int
     DayOfWeek: int
     Promo: int
@@ -55,56 +33,62 @@ class RossmannFeatures(BaseModel):
     IsWeekend: int
     IsPromoMonth: int
     Promo2Active: int
-    CompetitionOpenTimeMonths: int
+    CompetitionOpenTimeMonths: float
 
+# -------- Download Helper --------
+def download_from_s3(key, local_path):
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    s3.download_file(BUCKET, key, local_path)
+
+# -------- Load model & encoders on startup --------
+@app.on_event("startup")
+def load_artifacts():
+    global model, encoders
+    try:
+        model_path = "/tmp/model.joblib"
+        enc_path = "/tmp/label_encoders.pkl"
+
+        download_from_s3(MODEL_KEY, model_path)
+        download_from_s3(ENCODER_KEY, enc_path)
+
+        model = joblib.load(model_path)
+        encoders = joblib.load(enc_path)
+
+        print("✅ Model and encoders loaded")
+    except Exception as e:
+        print(f"❌ Failed loading artifacts: {e}")
+
+# -------- API --------
+app = FastAPI()
 
 @app.get("/")
-def health_check():
-    return {"message": "Rossmann Sales Prediction API is healthy"}
+def health():
+    return {"status": "alive", "model_loaded": model is not None}
 
-
-# ---------------- Download and Extract Model ------------------
-def download_and_extract_model():
-    """Download model.tar.gz from S3 and extract"""
-    model_dir = "/tmp/model_dir"
-    os.makedirs(model_dir, exist_ok=True)
-
-    local_tar_path = "/tmp/model.tar.gz"
-    s3.download_file(BUCKET, MODEL_KEY, local_tar_path)
-
-    with tarfile.open(local_tar_path, "r:gz") as tar:
-        tar.extractall(path=model_dir)
-
-    return os.path.join(model_dir, "model.joblib")
-
-
-@app.on_event("startup")
-def load_model():
-    """Load model at startup"""
-    global model
-    try:
-        model_path = download_and_extract_model()
-        model = joblib.load(model_path)
-        print("✅ Model loaded successfully.")
-    except Exception as e:
-        print(f"❌ Failed to load model: {e}")
-        raise
-
-
-# ---------------- Prediction Endpoint ------------------
 @app.post("/predict")
-def predict(input: RossmannFeatures):
+def predict(features: Features):
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
     try:
-        # Convert input to DataFrame
-        df = pd.DataFrame([input.dict()])
+        df = pd.DataFrame([features.dict()])
 
-        # Ensure column order matches training
-        df = df[SELECTED_FEATURES]
+        # Apply label encoders
+        for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
+            if col in encoders:
+                df[col] = encoders[col].transform(df[col])
 
-        # Predict sales
-        prediction = model.predict(df)[0]
+        # Order columns exactly like training
+        ordered_cols = [
+            "Store","DayOfWeek","Promo","StateHoliday","SchoolHoliday",
+            "StoreType","Assortment","CompetitionDistance","Year","Month",
+            "WeekOfYear","Day","IsWeekend","IsPromoMonth","Promo2Active",
+            "CompetitionOpenTimeMonths"
+        ]
+        df = df[ordered_cols]
 
-        return {"predicted_sales": float(prediction)}
+        pred = model.predict(df)[0]
+        return {"prediction": float(pred)}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
