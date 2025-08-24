@@ -11,7 +11,7 @@ MODEL_KEY = os.getenv("MODEL_KEY", "rossmann-artifacts/model.joblib")
 ENCODER_KEY = os.getenv("ENCODER_KEY", "rossmann-artifacts/label_encoders.pkl")
 REGION = os.getenv("AWS_REGION", "us-east-1")
 
-# -------- Globals --------
+# -------- Globals ---------
 s3 = boto3.client("s3", region_name=REGION)
 model = None
 encoders = None
