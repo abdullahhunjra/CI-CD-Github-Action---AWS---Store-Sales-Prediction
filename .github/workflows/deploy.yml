@@ -1,0 +1,35 @@
+name: Deploy Rossmann Model to SageMaker Endpoint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/inference.py
+      - cicd/deploy_model.py
+      - requirements.txt
+      - .github/workflows/deploy.yml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: pip install boto3 sagemaker pandas scikit-learn joblib
+
+      - name: Deploy model to SageMaker Endpoint
+        run: python cicd/deploy_model.py
