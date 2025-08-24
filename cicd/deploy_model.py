@@ -22,9 +22,10 @@ except Exception as e:
 model = SKLearnModel(
     entry_point="inference.py",
     source_dir="scripts",
+    dependencies=["requirements.txt"],  # ✅ ensure right sklearn version
     model_data=model_artifact,
     role=role,
-    framework_version="1.0-1",  
+    framework_version="1.0-1",
     sagemaker_session=sagemaker_session
 )
 

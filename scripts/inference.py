@@ -4,11 +4,16 @@ import numpy as np
 import json
 
 def model_fn(model_dir):
-    """Load model from the model_dir"""
-    model_path = os.path.join(model_dir, "model.joblib")
-    print(f"🔹 Loading model from: {model_path}")
-    model = joblib.load(model_path)
-    return model
+    try:
+        model_path = os.path.join(model_dir, "model.joblib")
+        print(f"🔹 Attempting to load model from: {model_path}")
+        model = joblib.load(model_path)
+        print("✅ Model loaded successfully")
+        return model
+    except Exception as e:
+        print("❌ Model load failed:", e)
+        raise
+
 
 def input_fn(request_body, request_content_type):
     """Deserialize input data"""
