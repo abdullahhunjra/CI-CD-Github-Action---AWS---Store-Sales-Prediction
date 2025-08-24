@@ -10,7 +10,7 @@ model_artifact = (
     "rf-hpo-2025-08-21-19-05-05-007-496cb0b3/output/model.tar.gz"
 )
 
-endpoint_name = "rossmann-rf-endpoint-new-fully-finally"
+endpoint_name = "rossmann-rf-endpoint-new-fully-finallly"
 
 # Delete old endpoint if exists
 try:
@@ -32,7 +32,7 @@ model = SKLearnModel(
 # Deploy
 predictor = model.deploy(
     initial_instance_count=1,
-    instance_type="ml.m5.4xlarge", 
+    instance_type="ml.m5.2xlarge", 
     endpoint_name=endpoint_name
 )
 
