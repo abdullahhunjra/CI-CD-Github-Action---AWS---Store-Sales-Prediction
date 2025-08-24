@@ -6,3 +6,7 @@ matplotlib==3.3.4
 joblib==1.0.1
 boto3
 
+fastapi
+uvicorn
+python-multipart
+pydantic
