@@ -1,32 +1,22 @@
+# test_endpoints.py
 import boto3
-import json
 
+# SageMaker runtime client
 runtime = boto3.client("sagemaker-runtime", region_name="us-east-1")
 
-endpoint_name = "rossmann-rf-endpoint-ASH"
+# Replace with your actual endpoint name
+endpoint_name = "rossmann-rf-endpoint-by-abdullah-shahzad"
 
-# Raw input row BEFORE preprocessing
-raw_input = {
-    "Store": 1,
-    "DayOfWeek": 1,
-    "Date": "2015-07-27",   # 👈 important, preprocessing extracts features from this
-    "Promo": 0,
-    "StateHoliday": "0",
-    "SchoolHoliday": 0,
-    "StoreType": "a",
-    "Assortment": "a",
-    "CompetitionDistance": 500.0,
-    "CompetitionOpenSinceYear": 2013,
-    "CompetitionOpenSinceMonth": 9,
-    "Promo2": 1,
-    "PromoInterval": "Feb,May,Aug,Nov"
-}
+# A single row of features (must exactly match training feature count & order)
+payload = "1,0,0,2,1,0,2,6.215,2015,7,27,15,0,0,0,2.302"
 
+# Invoke endpoint
 response = runtime.invoke_endpoint(
     EndpointName=endpoint_name,
-    ContentType="application/json",  # 👈 must be JSON now
-    Body=json.dumps(raw_input)
+    ContentType="text/csv",
+    Body=payload
 )
 
+# Read prediction
 result = response["Body"].read().decode("utf-8")
-print("Prediction:", result)
+print("🎯 Prediction:", result)
