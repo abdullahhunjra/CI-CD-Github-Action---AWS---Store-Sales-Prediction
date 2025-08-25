@@ -10,7 +10,7 @@ model_artifact = (
     "rf-hpo-2025-08-24-11-42-54-006-f2a2bddd/output/model.tar.gz"
 )
 
-endpoint_name = "rossmann-rf-endpoint-ASH"
+endpoint_name = "rossmann-rf-endpoint-by-abdullah-shahzad"
 
 # Delete old endpoint if exists
 try:
@@ -23,10 +23,10 @@ except Exception as e:
 model = SKLearnModel(
     entry_point="inference.py",
     source_dir="scripts",
-    dependencies=["requirements.txt"],  # ensure sklearn 0.23 is installed
+    dependencies=["requirements.txt"], 
     model_data=model_artifact,
     role=role,
-    framework_version="0.23-1",   # ✅ match training version
+    framework_version="0.23-1",  
     py_version="py3",
     sagemaker_session=sagemaker_session
 )
