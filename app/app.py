@@ -1,94 +1,107 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import boto3, os, joblib
+import joblib
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import json
+import os
 
-# -------- Config ------------
-BUCKET = os.getenv("BUCKET", "rossmann-sales-bucket")
-MODEL_KEY = os.getenv("MODEL_KEY", "rossmann-artifacts/model.joblib")
-ENCODER_KEY = os.getenv("ENCODER_KEY", "rossmann-artifacts/label_encoders.pkl")
-REGION = os.getenv("AWS_REGION", "us-east-1")
+# ---------------- PATHS (update for your system) ---------------- #
+MODEL_PATH = "/Users/abdullahhanjra/Downloads/model.joblib"
+ENCODER_PATH = "/Users/abdullahhanjra/Downloads/label_encoders.pkl"
 
-# -------- Globals ---------
-s3 = boto3.client("s3", region_name=REGION)
-model = None
-encoders = None
+# ---------------- FEATURE ORDER ---------------- #
+FEATURE_COLUMNS = [
+    "Store", "DayOfWeek", "Promo", "StateHoliday", "SchoolHoliday",
+    "StoreType", "Assortment", "CompetitionDistance", "Year", "Month",
+    "WeekOfYear", "Day", "IsWeekend", "IsPromoMonth", "Promo2Active",
+    "CompetitionOpenTimeMonths"
+]
 
-# -------- Input Schema --------
-class Features(BaseModel):
-    Store: int
-    DayOfWeek: int
-    Promo: int
-    StateHoliday: str
-    SchoolHoliday: int
-    StoreType: str
-    Assortment: str
-    CompetitionDistance: float
-    Year: int
-    Month: int
-    WeekOfYear: int
-    Day: int
-    IsWeekend: int
-    IsPromoMonth: int
-    Promo2Active: int
-    CompetitionOpenTimeMonths: float
+# ---------------- LOAD ---------------- #
+print("📥 Loading model + encoders...")
+model = joblib.load(MODEL_PATH)
+label_encoders = joblib.load(ENCODER_PATH)
+print("✅ Loaded successfully!")
 
-# -------- Download Helper --------
-def download_from_s3(key, local_path):
-    os.makedirs(os.path.dirname(local_path), exist_ok=True)
-    s3.download_file(BUCKET, key, local_path)
+# ---------------- PREPROCESS (copied from inference.py) ---------------- #
+def preprocess(input_json):
+    df = pd.DataFrame([input_json])
 
-# -------- Load model & encoders on startup --------
-@app.on_event("startup")
-def load_artifacts():
-    global model, encoders
-    try:
-        model_path = "/tmp/model.joblib"
-        enc_path = "/tmp/label_encoders.pkl"
+    # Date features
+    df["Date"] = pd.to_datetime(df["Date"])
+    df["Year"] = df["Date"].dt.year
+    df["Month"] = df["Date"].dt.month
+    df["WeekOfYear"] = df["Date"].dt.isocalendar().week.astype(int)
+    df["Day"] = df["Date"].dt.day
+    df["DayOfWeek"] = df["Date"].dt.dayofweek
+    df["IsWeekend"] = df["DayOfWeek"].isin([5, 6]).astype(int)
 
-        download_from_s3(MODEL_KEY, model_path)
-        download_from_s3(ENCODER_KEY, enc_path)
+    # Promo2 features
+    df["PromoInterval"] = df.get("PromoInterval", "NoPromo").fillna("NoPromo")
+    df["MonthStr"] = df["Date"].dt.strftime("%b")
+    df["IsPromoMonth"] = df.apply(
+        lambda row: int(row["MonthStr"] in row["PromoInterval"].split(","))
+        if row["PromoInterval"] != "NoPromo" else 0, axis=1
+    )
+    df["Promo2Active"] = ((df.get("Promo2", 0) == 1) & (df["IsPromoMonth"] == 1)).astype(int)
 
-        model = joblib.load(model_path)
-        encoders = joblib.load(enc_path)
+    # Competition distance
+    df["CompetitionDistance"] = np.log1p(df["CompetitionDistance"])
 
-        print("✅ Model and encoders loaded")
-    except Exception as e:
-        print(f"❌ Failed loading artifacts: {e}")
+    # Competition open months
+    if "CompetitionOpenSinceYear" in df and "CompetitionOpenSinceMonth" in df:
+        df["CompetitionOpenSinceYear"] = df["CompetitionOpenSinceYear"].fillna(0).astype(int)
+        df["CompetitionOpenSinceMonth"] = df["CompetitionOpenSinceMonth"].fillna(0).astype(int)
 
-# -------- API --------
-app = FastAPI()
+        def compute_months(row):
+            if row["CompetitionOpenSinceYear"] > 0 and row["CompetitionOpenSinceMonth"] > 0:
+                comp_date = datetime(year=row["CompetitionOpenSinceYear"],
+                                     month=row["CompetitionOpenSinceMonth"], day=1)
+                months = (row["Date"].year - comp_date.year) * 12 + (row["Date"].month - comp_date.month)
+                return max(months, 0)
+            else:
+                return 0
+        df["CompetitionOpenTimeMonths"] = df.apply(compute_months, axis=1)
+        df["CompetitionOpenTimeMonths"] = np.log1p(df["CompetitionOpenTimeMonths"])
+    else:
+        df["CompetitionOpenTimeMonths"] = 0
 
-@app.get("/")
-def health():
-    return {"status": "alive", "model_loaded": model is not None}
+    # Encode categorical
+    for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
+        if col in df.columns and col in label_encoders:
+            df[col] = label_encoders[col].transform(df[col].astype(str))
 
-@app.post("/predict")
-def predict(features: Features):
-    if model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+    # Drop unused
+    drop_cols = ["Date", "Customers", "PromoInterval",
+                 "CompetitionOpenSinceMonth", "CompetitionOpenSinceYear",
+                 "MonthStr", "Promo2", "CompetitionOpenSinceDate"]
+    df.drop(columns=[c for c in drop_cols if c in df.columns], inplace=True)
 
-    try:
-        df = pd.DataFrame([features.dict()])
+    # Ensure order
+    df = df[FEATURE_COLUMNS]
 
-        # Apply label encoders
-        for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
-            if col in encoders:
-                df[col] = encoders[col].transform(df[col])
+    return df.values
 
-        # Order columns exactly like training
-        ordered_cols = [
-            "Store","DayOfWeek","Promo","StateHoliday","SchoolHoliday",
-            "StoreType","Assortment","CompetitionDistance","Year","Month",
-            "WeekOfYear","Day","IsWeekend","IsPromoMonth","Promo2Active",
-            "CompetitionOpenTimeMonths"
-        ]
-        df = df[ordered_cols]
+# ---------------- SAMPLE TEST ---------------- #
+raw_input = {
+    "Store": 1,
+    "DayOfWeek": 1,
+    "Date": "2015-07-27",
+    "Promo": 1,
+    "StateHoliday": "0",
+    "SchoolHoliday": 1,
+    "StoreType": "c",
+    "Assortment": "a",
+    "CompetitionDistance": 500.0,
+    "CompetitionOpenSinceMonth": 9,
+    "CompetitionOpenSinceYear": 2008,
+    "Promo2": 1,
+    "PromoInterval": "Jan,Apr,Jul,Oct"
+}
 
-        pred = model.predict(df)[0]
-        return {"prediction": float(pred)}
+print("📊 Raw input:", raw_input)
+X = preprocess(raw_input)
+print("✅ Preprocessed:", X)
 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+pred = model.predict(X)
+print("🎯 Prediction:", pred)
