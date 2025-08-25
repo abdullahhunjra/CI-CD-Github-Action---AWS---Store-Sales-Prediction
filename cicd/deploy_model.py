@@ -10,7 +10,7 @@ model_artifact = (
     "rf-hpo-2025-08-24-11-42-54-006-f2a2bddd/output/model.tar.gz"
 )
 
-endpoint_name = "rossmann-rf-endpoint-v2"
+endpoint_name = "rossmann-rf-endpoint-v"
 
 # Delete old endpoint if exists
 try:
