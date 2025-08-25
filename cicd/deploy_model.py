@@ -7,7 +7,7 @@ sagemaker_session = sagemaker.Session()
 # Best model artifact
 model_artifact = (
     "s3://rossmann-sales-bucket/rf-hpo-output/"
-    "rf-hpo-2025-08-21-19-05-05-007-496cb0b3/output/model.tar.gz"
+    "rf-hpo-2025-08-24-11-42-54-006-f2a2bddd/output/model.tar.gz"
 )
 
 endpoint_name = "rossmann-rf-endpoint-debugged"
