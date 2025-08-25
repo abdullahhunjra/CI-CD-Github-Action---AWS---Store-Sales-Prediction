@@ -1,3 +1,12 @@
+<p align="center">
+  <img src="assets/title_image.png" width="65%" style="border-radius: 10px;">
+</p>
+
+<h1 align="center">📊 Rossmann Store Sales Prediction</h1>
+
+<p align="center" style="font-size: 16px;">
+
+
 # 🚀 Rossmann Sales Forecasting — End-to-End ML with AWS SageMaker & CI/CD
 
 An end-to-end **Machine Learning + MLOps** project to forecast daily sales for thousands of drug stores.  
