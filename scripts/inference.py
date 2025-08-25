@@ -6,6 +6,12 @@ import sys
 import traceback
 import pandas as pd
 from datetime import datetime
+import boto3
+
+# ---------------- CONFIG ---------------- #
+BUCKET = "rossmann-sales-bucket"
+ENCODERS_KEY = "rossmann-artifacts/label_encoders.pkl"
+TMP_ENCODER_PATH = "/tmp/label_encoders.pkl"
 
 # ---------------- FINAL FEATURE ORDER ---------------- #
 FEATURE_COLUMNS = [
@@ -15,27 +21,20 @@ FEATURE_COLUMNS = [
     "CompetitionOpenTimeMonths"
 ]
 
+# Globals
 model = None
 label_encoders = None
+s3 = boto3.client("s3")
 
 
-# ---------------- LOAD MODEL + ARTIFACTS ---------------- #
+# ---------------- LOAD MODEL ---------------- #
 def model_fn(model_dir):
-    global model, label_encoders
+    global model
     try:
         model_path = os.path.join(model_dir, "model.joblib")
-        encoders_path = os.path.join(model_dir, "label_encoders.pkl")
-
         print(f"🔹 Loading model from: {model_path}", flush=True)
         model = joblib.load(model_path)
-
-        print(f"🔹 Loading label encoders from: {encoders_path}", flush=True)
-        if os.path.exists(encoders_path):
-            label_encoders = joblib.load(encoders_path)
-        else:
-            print("⚠️ No encoders found!", flush=True)
-
-        print("✅ Model + encoders loaded successfully", flush=True)
+        print("✅ Model loaded successfully", flush=True)
         return model
     except Exception as e:
         print("❌ Model load failed:", e, flush=True)
@@ -43,7 +42,27 @@ def model_fn(model_dir):
         raise
 
 
-# ---------------- PREPROCESSING (from preprocess.py) ---------------- #
+# ---------------- LOAD ENCODERS (runtime) ---------------- #
+def get_encoders():
+    global label_encoders
+    try:
+        if label_encoders is not None:
+            return label_encoders
+
+        if not os.path.exists(TMP_ENCODER_PATH):
+            print("📥 Downloading encoders from S3...", flush=True)
+            s3.download_file(BUCKET, ENCODERS_KEY, TMP_ENCODER_PATH)
+
+        label_encoders = joblib.load(TMP_ENCODER_PATH)
+        print("✅ Encoders loaded successfully", flush=True)
+        return label_encoders
+    except Exception as e:
+        print("❌ Failed to load encoders:", e, flush=True)
+        traceback.print_exc(file=sys.stdout)
+        raise
+
+
+# ---------------- PREPROCESSING ---------------- #
 def preprocess(input_json):
     df = pd.DataFrame([input_json])
 
@@ -88,10 +107,10 @@ def preprocess(input_json):
         df["CompetitionOpenTimeMonths"] = 0
 
     # --- Encode categorical ---
-    if label_encoders:
-        for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
-            if col in df.columns and col in label_encoders:
-                df[col] = label_encoders[col].transform(df[col].astype(str))
+    encoders = get_encoders()
+    for col in ["StateHoliday", "Assortment", "StoreType", "Store"]:
+        if col in df.columns and col in encoders:
+            df[col] = encoders[col].transform(df[col].astype(str))
 
     # --- Drop unused ---
     drop_cols = ["Date", "Customers", "PromoInterval",
