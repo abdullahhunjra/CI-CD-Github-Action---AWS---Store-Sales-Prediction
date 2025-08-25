@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/title_image.png" width="65%" style="border-radius: 10px;">
+  <img src="title_image.png" width="65%" style="border-radius: 10px;">
 </p>
 
 <h1 align="center">📊 Rossmann Store Sales Prediction</h1>
