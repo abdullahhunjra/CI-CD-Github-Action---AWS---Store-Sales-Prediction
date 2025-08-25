@@ -163,8 +163,11 @@ Each pipeline is triggered on GitHub pushes to `main` branch with YAML workflows
 
 ---
 
-## 🙋‍♂️ Author  
+## 🙋‍♂️ Author
 
 **Abdullah Shahzad**  
-📧 abdullahhunjra@gmail.com  
-🔗 [LinkedIn](#) | 💻 [GitHub](#)  
+📧 [abdullahhunjra@gmail.com](mailto:abdullahshahzadhunjra@gmail.com)  
+🔗 [LinkedIn](https://www.linkedin.com/in/abdullahhunjra)  
+💻 [GitHub](https://github.com/abdullahhunjra)
+
+---
