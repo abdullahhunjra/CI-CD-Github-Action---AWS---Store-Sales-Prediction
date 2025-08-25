@@ -16,6 +16,8 @@ test_input = "s3://rossmann-sales-bucket/rossmann-processed/X_test.csv"
 # Output bucket location for predictions
 output_path = "s3://rossmann-sales-bucket/rossmann-batch-predictions/"
 
+job_name = f"rossmann-batch-transform-by-abdullah-shahzad"
+
 # Create SageMaker model (using your inference.py entry point)
 model = SKLearnModel(
     entry_point="inference.py",
@@ -31,7 +33,7 @@ model = SKLearnModel(
 # Create Transformer object
 transformer = model.transformer(
     instance_count=1,
-    instance_type="ml.m5.2xlarge",
+    instance_type="ml.m5.xlarge",
     strategy="SingleRecord",
     assemble_with="Line",
     output_path=output_path
@@ -41,7 +43,12 @@ transformer = model.transformer(
 transformer.transform(
     data=test_input,
     content_type="text/csv",
-    split_type="Line"
+    split_type="Line",
+    input_filter="$[0:]", 
+    join_source="Input",
+    output_filter="$[0,-1]",
+    job_name=job_name,   # ✅ custom job name
+    wait=True
 )
 
 transformer.wait()
